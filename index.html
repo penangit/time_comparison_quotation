@@ -37,6 +37,19 @@
         .btn-amber:hover { opacity: 0.9; }
         .btn svg { width: 15px; height: 15px; fill: currentColor; flex-shrink: 0; }
 
+        /* Currency switcher */
+        .currency-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem 1.2rem; margin-bottom: 1rem; font-size: 0.82rem; color: var(--slate); }
+        .currency-bar .rate-info { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px; }
+        .currency-bar .rate-value { font-weight: 700; color: var(--navy); font-size: 0.95rem; }
+        .currency-bar .rate-time { font-size: 0.72rem; color: var(--muted); }
+        .currency-bar .rate-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+        .currency-bar .rate-dot.stale { background: var(--amber); }
+        .currency-bar .rate-dot.error { background: var(--red); }
+        .currency-toggle { display: inline-flex; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); flex-shrink: 0; }
+        .currency-toggle button { padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 600; border: none; cursor: pointer; transition: 0.15s; background: var(--bg); color: var(--muted); }
+        .currency-toggle button.active { background: var(--navy); color: #fff; }
+        .currency-toggle button:hover:not(.active) { background: #e2e8f0; }
+
         .card { background: var(--card); border-radius: var(--radius); padding: 1.5rem 1.8rem; border: 1px solid var(--border); margin-bottom: 1.5rem; }
         .card-title { font-size: 1.05rem; font-weight: 700; color: var(--navy); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
 
@@ -189,6 +202,20 @@
             <button class="btn btn-amber" onclick="exportExcel()" id="excelBtn"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg> Export Excel (with charts)</button>
         </div>
         <div style="font-size:0.73rem;color:var(--muted);">Ref: TIME_E&amp;O#5113936/JUNE26</div>
+    </div>
+
+    <!-- CURRENCY SWITCHER -->
+    <div class="currency-bar" id="currencyBar">
+        <div class="rate-info">
+            <span class="rate-dot" id="rateDot"></span>
+            <span>1 MYR = <span class="rate-value" id="rateValue">...</span> IDR</span>
+            <span class="rate-time" id="rateTime">fetching rate...</span>
+            <span class="rate-time">Source: <a href="https://open.er-api.com" target="_blank" style="color:var(--blue);text-decoration:none;">open.er-api.com</a></span>
+        </div>
+        <div class="currency-toggle">
+            <button class="active" id="btnMYR" onclick="setCurrency('MYR')">🇲🇾 MYR</button>
+            <button id="btnIDR" onclick="setCurrency('IDR')">🇮🇩 IDR</button>
+        </div>
     </div>
 
     <!-- EXECUTIVE SUMMARY -->
@@ -870,6 +897,85 @@ async function exportExcelWithCharts() {
         saveAs(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'Time_Internet_Optimization.xlsx');
     } catch(e) { console.error(e); exportExcelFallback(); }
     finally { btn.innerHTML='\u{1F4CA} Export Excel (with charts)'; btn.disabled=false; }
+}
+
+// ══════════════════════════════════════════
+// CURRENCY CONVERSION — MYR ↔ IDR
+// ══════════════════════════════════════════
+var currencyState = { current: 'MYR', rate: null, rateDate: null, originals: [] };
+
+(function fetchRate() {
+    fetch('https://open.er-api.com/v6/latest/MYR')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data && data.rates && data.rates.IDR) {
+                currencyState.rate = data.rates.IDR;
+                currencyState.rateDate = new Date();
+                document.getElementById('rateValue').textContent = currencyState.rate.toLocaleString('en-MY', { maximumFractionDigits: 0 });
+                var tStr = currencyState.rateDate.toLocaleString('en-MY', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+                document.getElementById('rateTime').textContent = 'Updated ' + tStr;
+                document.getElementById('rateDot').className = 'rate-dot';
+            } else { rateError(); }
+        })
+        .catch(function() { rateError(); });
+})();
+
+function rateError() {
+    // Fallback rate (approximate, based on Google Finance 7 Oct 2026)
+    currencyState.rate = 4373;
+    currencyState.rateDate = null;
+    document.getElementById('rateValue').textContent = '~4,373';
+    document.getElementById('rateTime').textContent = 'offline fallback rate (7 Oct 2026)';
+    document.getElementById('rateDot').className = 'rate-dot stale';
+}
+
+function setCurrency(c) {
+    if (c === currencyState.current || !currencyState.rate) return;
+    currencyState.current = c;
+    document.getElementById('btnMYR').classList.toggle('active', c === 'MYR');
+    document.getElementById('btnIDR').classList.toggle('active', c === 'IDR');
+
+    if (c === 'IDR' && currencyState.originals.length === 0) {
+        // First switch — snapshot all text nodes with RM values
+        snapshotAndConvert();
+    } else if (c === 'IDR') {
+        // Re-convert from originals
+        currencyState.originals.forEach(function(o) {
+            o.node.textContent = o.converted;
+        });
+    } else {
+        // Restore MYR
+        currencyState.originals.forEach(function(o) {
+            o.node.textContent = o.original;
+        });
+    }
+}
+
+function snapshotAndConvert() {
+    var rate = currencyState.rate;
+    var rmPattern = /RM\s?([\d,]+(?:\.\d{1,2})?)/g;
+    var walker = document.createTreeWalker(
+        document.querySelector('.container'),
+        NodeFilter.SHOW_TEXT,
+        null, false
+    );
+    var node;
+    while (node = walker.nextNode()) {
+        if (rmPattern.test(node.textContent)) {
+            rmPattern.lastIndex = 0;
+            var orig = node.textContent;
+            var converted = orig.replace(rmPattern, function(match, num) {
+                var val = parseFloat(num.replace(/,/g, ''));
+                if (isNaN(val)) return match;
+                var idr = Math.round(val * rate);
+                // Format IDR: no decimals, dot separator for thousands
+                var idrStr = idr.toLocaleString('id-ID');
+                return 'Rp ' + idrStr;
+            });
+            currencyState.originals.push({ node: node, original: orig, converted: converted });
+            node.textContent = converted;
+        }
+    }
 }
 
 function exportExcelFallback() {
