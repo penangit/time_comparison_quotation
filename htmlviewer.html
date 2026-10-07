@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Time Internet – Package Optimization Report</title>
+    <link rel="icon" href="https://www.time.com.my/wp-content/uploads/assets/images/shared/icons/favicon.ico" sizes="32x32" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --navy: #0b1a2e; --navy-light: #1a314b; --slate: #334155;
+            --muted: #64748b; --border: #e2e8f0; --bg: #f8fafc; --card: #fff;
+            --green: #059669; --green-bg: #ecfdf5; --green-text: #065f46;
+            --red: #dc2626; --red-bg: #fef2f2; --red-text: #991b1b;
+            --amber: #d97706; --amber-bg: #fffbeb; --amber-text: #92400e;
+            --blue: #2563eb; --blue-bg: #eff6ff; --blue-text: #1e40af;
+            --radius: 12px;
+        }
+        body { background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; padding: 1.5rem; color: var(--slate); line-height: 1.6; font-size: 0.95rem; }
+        .container { max-width: 1240px; margin: 0 auto; }
+
+        .header { background: var(--navy); color: #fff; border-radius: var(--radius); padding: 2rem 2.5rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; }
+        .header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.3px; }
+        .header h1 span { color: #93c5fd; }
+        .header .meta { font-size: 0.85rem; opacity: 0.7; margin-top: 0.3rem; }
+        .header .date-badge { background: rgba(255,255,255,0.1); padding: 0.45rem 1rem; border-radius: 30px; font-size: 0.82rem; font-weight: 500; border: 1px solid rgba(255,255,255,0.1); }
+
+        .toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; align-items: center; justify-content: space-between; }
+        .toolbar .left { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .btn { display: inline-flex; align-items: center; gap: 0.4rem; background: var(--card); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 8px; font-weight: 500; font-size: 0.8rem; cursor: pointer; transition: 0.15s; color: var(--slate); text-decoration: none; }
+        .btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+        .btn-dark { background: var(--navy); color: #fff; border-color: var(--navy); }
+        .btn-dark:hover { background: var(--navy-light); }
+        .btn-green { background: var(--green); color: #fff; border-color: var(--green); }
+        .btn-green:hover { opacity: 0.9; }
+        .btn-amber { background: var(--amber); color: #fff; border-color: var(--amber); }
+        .btn-amber:hover { opacity: 0.9; }
+        .btn svg { width: 15px; height: 15px; fill: currentColor; flex-shrink: 0; }
+
+        .card { background: var(--card); border-radius: var(--radius); padding: 1.5rem 1.8rem; border: 1px solid var(--border); margin-bottom: 1.5rem; }
+        .card-title { font-size: 1.05rem; font-weight: 700; color: var(--navy); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+
+        /* Exec summary */
+        .exec-summary { background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); border: 2px solid #86efac; border-radius: var(--radius); padding: 1.8rem 2rem; margin-bottom: 1.5rem; }
+        .exec-summary .headline { font-size: 1.3rem; font-weight: 700; color: var(--green-text); margin-bottom: 0.5rem; }
+        .exec-summary .subline { font-size: 0.95rem; color: var(--green-text); opacity: 0.85; line-height: 1.6; }
+        .exec-summary .big-number { font-size: 2.6rem; font-weight: 800; color: var(--green); letter-spacing: -1px; margin: 0.8rem 0 0.2rem; }
+        .exec-summary .big-label { font-size: 0.82rem; color: var(--green-text); font-weight: 500; }
+
+        /* Technical requirement */
+        .tech-box { background: #f0f4ff; border: 1px solid #bfdbfe; border-radius: var(--radius); padding: 1.4rem 1.6rem; margin-bottom: 1.5rem; }
+        .tech-box .tech-title { font-size: 0.95rem; font-weight: 700; color: var(--blue-text); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem; }
+        .tech-box p { font-size: 0.85rem; color: var(--blue-text); line-height: 1.6; margin-bottom: 0.4rem; }
+
+        /* Scenario cards */
+        .scenario-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1.5rem; }
+        .s-card { background: var(--card); border-radius: var(--radius); padding: 1.2rem 1.3rem; border: 1px solid var(--border); position: relative; overflow: hidden; }
+        .s-card.recommended { border-color: var(--green); border-width: 2px; background: linear-gradient(180deg, #f0fdf4 0%, #fff 40%); }
+        .s-card.recommended::before { content: '★ RECOMMENDED'; position: absolute; top: 0; right: 0; background: var(--green); color: #fff; font-size: 0.58rem; font-weight: 700; padding: 0.2rem 0.7rem; border-radius: 0 0 0 8px; letter-spacing: 0.5px; }
+        .s-card .s-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: var(--muted); margin-bottom: 0.15rem; }
+        .s-card .s-title { font-weight: 700; font-size: 1rem; color: var(--navy); margin-bottom: 0.25rem; }
+        .s-card .s-price { font-size: 1.5rem; font-weight: 800; color: var(--navy); letter-spacing: -0.5px; }
+        .s-card .s-price small { font-size: 0.78rem; font-weight: 500; color: var(--muted); }
+        .s-card .s-detail { font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; line-height: 1.4; }
+        .s-badge { display: inline-block; font-size: 0.68rem; font-weight: 600; padding: 0.12rem 0.55rem; border-radius: 20px; margin-top: 0.35rem; }
+        .s-badge.green { background: var(--green-bg); color: var(--green-text); }
+        .s-badge.amber { background: var(--amber-bg); color: var(--amber-text); }
+        .s-badge.red { background: var(--red-bg); color: var(--red-text); }
+        .s-badge.blue { background: var(--blue-bg); color: var(--blue-text); }
+
+        /* CSS bar charts */
+        .chart-container { margin: 1rem 0; }
+        .chart-row { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.6rem; }
+        .chart-label { width: 130px; flex-shrink: 0; font-size: 0.8rem; font-weight: 600; color: var(--slate); text-align: right; }
+        .chart-bar-wrap { flex: 1; height: 30px; background: #f1f5f9; border-radius: 6px; position: relative; overflow: hidden; }
+        .chart-bar { height: 100%; border-radius: 6px; display: flex; align-items: center; padding: 0 0.7rem; font-size: 0.72rem; font-weight: 700; color: #fff; transition: width 0.6s ease; min-width: fit-content; }
+        .chart-bar.navy { background: var(--navy); }
+        .chart-bar.green-bar { background: var(--green); }
+        .chart-bar.blue-bar { background: var(--blue); }
+        .chart-bar.amber-bar { background: var(--amber); }
+
+        /* ── IMPROVED TABLE ── */
+        .table-wrap { overflow-x: auto; margin-top: 0.8rem; border-radius: 10px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+        table th { text-align: left; padding: 0.6rem 0.7rem; background: var(--navy); color: #fff; font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.3px; }
+        table td { padding: 0.55rem 0.7rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        table tr:last-child td { border-bottom: none; }
+
+        /* Recommended column highlight */
+        table th.col-rec { background: #064e3b; }
+        table td.col-rec { background: #f0fdf4 !important; }
+        .row-total td { font-weight: 700; background: #f0f4f8; border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); }
+        .row-total td.col-rec { background: #dcfce7 !important; }
+        .row-savings td { background: var(--green-bg); font-weight: 600; color: var(--green-text); }
+        .row-penalty td { background: var(--red-bg); color: var(--red-text); }
+        .row-otc td { background: var(--amber-bg); color: var(--amber-text); }
+        .row-section td { background: #f8fafc; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); padding: 0.4rem 0.7rem; border-top: 2px solid var(--border); }
+        .text-muted { color: var(--muted); font-size: 0.78rem; }
+        .chip { display: inline-block; padding: 0.08rem 0.5rem; border-radius: 20px; font-size: 0.62rem; font-weight: 600; }
+        .chip.green { background: var(--green-bg); color: var(--green-text); }
+        .chip.red { background: var(--red-bg); color: var(--red-text); }
+        .chip.amber { background: var(--amber-bg); color: var(--amber-text); }
+        .chip.blue { background: var(--blue-bg); color: var(--blue-text); }
+
+        /* Mini savings bar inside table cell */
+        .mini-bar-wrap { width: 100%; height: 6px; background: #d1fae5; border-radius: 4px; margin-top: 0.3rem; }
+        .mini-bar { height: 100%; background: var(--green); border-radius: 4px; }
+
+        /* TCO */
+        .tco-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin: 1rem 0; }
+        .tco-card { background: #f8fafc; border-radius: 10px; padding: 1rem 1.2rem; border: 1px solid var(--border); text-align: center; }
+        .tco-card.highlight { background: var(--green-bg); border-color: #86efac; border-width: 2px; }
+        .tco-card .tco-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.3px; font-weight: 600; color: var(--muted); margin-bottom: 0.25rem; }
+        .tco-card .tco-amount { font-size: 1.35rem; font-weight: 800; color: var(--navy); letter-spacing: -0.5px; }
+        .tco-card.highlight .tco-amount { color: var(--green); }
+        .tco-card .tco-sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem; }
+        .tco-card .tco-saved { font-size: 0.82rem; font-weight: 700; color: var(--green); margin-top: 0.25rem; }
+
+        /* Timeline */
+        .timeline { display: flex; gap: 0; margin: 1.5rem 0 1rem; position: relative; }
+        .timeline::before { content: ''; position: absolute; top: 24px; left: 5%; right: 5%; height: 3px; background: var(--border); }
+        .tl-item { flex: 1; text-align: center; position: relative; padding: 0 0.3rem; }
+        .tl-dot { width: 14px; height: 14px; border-radius: 50%; margin: 0 auto 0.35rem; position: relative; z-index: 1; border: 3px solid #fff; }
+        .tl-dot.green { background: var(--green); }
+        .tl-dot.red { background: var(--red); }
+        .tl-dot.amber { background: var(--amber); }
+        .tl-dot.blue { background: var(--blue); }
+        .tl-dot.pulse { box-shadow: 0 0 0 4px rgba(37,99,235,0.25); }
+        .tl-date { font-size: 0.7rem; font-weight: 700; color: var(--navy); }
+        .tl-text { font-size: 0.68rem; color: var(--muted); margin-top: 0.1rem; }
+
+        /* Break grid */
+        .break-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); gap: 1rem; margin-top: 0.5rem; }
+        .break-item { background: #f8fafc; border-radius: 10px; padding: 1rem 1.1rem; border: 1px solid var(--border); }
+        .break-item h4 { font-weight: 700; font-size: 0.85rem; margin-bottom: 0.35rem; color: var(--navy); }
+        .break-line { display: flex; justify-content: space-between; font-size: 0.8rem; padding: 0.12rem 0; color: var(--slate); }
+        .break-line.total { font-weight: 700; border-top: 1px solid var(--border); margin-top: 0.3rem; padding-top: 0.35rem; color: var(--navy); }
+        .break-line.otc { color: var(--amber); font-weight: 600; border-top: 1px dashed #fbbf24; margin-top: 0.2rem; padding-top: 0.25rem; }
+
+        /* Options */
+        .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.5rem; }
+        .option-box { background: #f8fafc; padding: 1.1rem 1.2rem; border-radius: 10px; border: 1px solid var(--border); }
+        .option-box.rec-box { background: var(--green-bg); border-color: #86efac; border-width: 2px; }
+        .opt-header { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.4rem; }
+        .opt-letter { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; color: #fff; font-size: 0.65rem; font-weight: 800; }
+        .option-box ul { list-style: none; padding: 0; font-size: 0.8rem; line-height: 1.65; color: var(--slate); }
+        .opt-result { font-weight: 700; color: var(--green); margin-top: 0.25rem; font-size: 0.83rem; }
+        .opt-cost { font-size: 0.76rem; color: var(--amber); font-weight: 500; }
+
+        /* Risk */
+        .risk-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-top: 0.5rem; }
+        .risk-item { padding: 1rem 1.1rem; border-radius: 10px; border: 1px solid var(--border); background: #f8fafc; }
+        .risk-item.rec-risk { background: var(--green-bg); border-color: #86efac; }
+        .risk-item h4 { font-weight: 700; font-size: 0.82rem; margin-bottom: 0.35rem; }
+        .risk-item p { font-size: 0.76rem; color: var(--muted); line-height: 1.45; }
+        .pro { color: var(--green-text) !important; }
+        .con { color: var(--red-text) !important; }
+
+        .callout { padding: 0.7rem 1rem; border-radius: 8px; font-size: 0.82rem; margin-top: 0.8rem; line-height: 1.5; }
+        .callout.amber { background: var(--amber-bg); border-left: 3px solid var(--amber); color: var(--amber-text); }
+        .callout.red { background: var(--red-bg); border-left: 3px solid var(--red); color: var(--red-text); }
+        .callout.green { background: var(--green-bg); border-left: 3px solid var(--green); color: var(--green-text); }
+        .callout.blue { background: var(--blue-bg); border-left: 3px solid var(--blue); color: var(--blue-text); }
+
+        .footer { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; font-size: 0.76rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 1.2rem; }
+
+        @media (max-width: 900px) { .scenario-grid, .tco-grid { grid-template-columns: 1fr 1fr; } .option-grid, .risk-grid { grid-template-columns: 1fr; } .header { padding: 1.2rem; flex-direction: column; align-items: flex-start; } }
+        @media (max-width: 550px) { .scenario-grid, .tco-grid { grid-template-columns: 1fr; } body { padding: 0.8rem; } .card { padding: 1rem 1.2rem; } .s-card .s-price { font-size: 1.2rem; } .chart-label { width: 90px; font-size: 0.7rem; } .exec-summary .big-number { font-size: 2rem; } }
+        @media print { body { background: #fff; padding: 0.3in; font-size: 0.85rem; } .card, .s-card, .exec-summary, .tech-box { box-shadow: none; break-inside: avoid; } .toolbar .btn { display: none !important; } .header { background: var(--navy) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .s-badge, .chip, .row-savings td, .row-penalty td, .row-total td, .row-otc td, .row-section td, .s-card.recommended::before, table th, .tl-dot, .exec-summary, .tco-card.highlight, .tech-box, .col-rec, td.col-rec, .mini-bar-wrap, .mini-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div>
+            <h1>Time <span>Internet</span> · Package Optimization</h1>
+            <div class="meta">L&amp;O STANDARD SDN BHD · NEO HOTEL PENANG · 68, Jalan Gurdwara, Georgetown</div>
+        </div>
+        <div class="date-badge">📅 <span id="dateDisplay"></span> · Finance Report</div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+        <div class="left">
+            <button class="btn btn-dark" onclick="window.print()"><svg viewBox="0 0 24 24"><path d="M19 8h-1V3H6v5H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zM8 5h8v3H8V5zm8 14H8v-4h8v4zm2-4v-2H6v2H4v-4c0-.55.45-1 1-1h14c.55 0 1 .45 1 1v4h-2z"/></svg> Print</button>
+            <button class="btn btn-green" onclick="exportPDF()"><svg viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/></svg> Export PDF</button>
+            <button class="btn btn-amber" onclick="exportExcel()" id="excelBtn"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg> Export Excel (with charts)</button>
+        </div>
+        <div style="font-size:0.73rem;color:var(--muted);">Ref: TIME_E&amp;O#5113936/JUNE26</div>
+    </div>
+
+    <!-- EXECUTIVE SUMMARY -->
+    <div class="exec-summary">
+        <div class="headline">💡 Executive Summary</div>
+        <div class="subline">
+            The hotel currently spends <strong>RM 4,280/month</strong> across two internet lines — the legacy 50Mbps leased line alone costs <strong>RM 3,710/month (87% of total)</strong> for just 50Mbps of bandwidth.
+            By migrating to TIME's FTTO Enterprise platform with dual 2Gbps lines, the hotel achieves <strong>4× the bandwidth</strong> at <strong>71% lower cost</strong>, with full redundancy maintained.
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:2rem;margin-top:1rem;">
+            <div>
+                <div class="big-number">RM 92,084</div>
+                <div class="big-label">Savings over 36-month contract (Scenario C)</div>
+            </div>
+            <div>
+                <div class="big-number" style="color:var(--green-text);">4 Gbps</div>
+                <div class="big-label">Total bandwidth · dual-line symmetric failover</div>
+            </div>
+        </div>
+        <div class="callout green" style="margin-top:1rem;">
+            <strong>Recommendation:</strong> Scenario C (2Gbps + 2Gbps) — Since the 50Mbps ID leased line is being decommissioned and the existing 1Gbps FTTO Business ONT cannot be upgraded to 2Gbps Enterprise speeds (different hardware platform), TIME's migration process requires two fresh FTTO Enterprise installations. This gives the hotel symmetric dual-line redundancy at 4Gbps total, saves RM 3,034/month, and the combined one-time costs (RM 17,130) pay for themselves within 5.6 months.
+        </div>
+    </div>
+
+    <!-- TECHNICAL REQUIREMENT -->
+    <div class="tech-box">
+        <div class="tech-title">⚙️ Why 2Gbps + 2Gbps — TIME Infrastructure &amp; Migration Constraints</div>
+        <p><strong>The current 50Mbps line is an Internet Direct (ID) Leased Line</strong> — a legacy dedicated-circuit product that operates on a completely separate network infrastructure from TIME's FTTO fibre platform. When this ID service is cancelled, the dedicated port allocation and circuit provisioning on TIME's network are permanently released. There is no migration path or capacity transfer from the ID platform to FTTO — they are distinct product families with different underlying transport.</p>
+        <p style="margin-top:0.5rem;"><strong>The existing 1Gbps is FTTO Business tier</strong> — this product uses a different ONT (Optical Network Terminal) and is provisioned on TIME's shared business GPON segment, which supports a maximum throughput of 1Gbps per port. The FTTO Business ONT hardware <strong>does not support 2Gbps or 10G handoff</strong>. An in-place speed upgrade from 1Gbps Business to 2Gbps Enterprise is not possible without replacing the terminal equipment, re-provisioning the port on the OLT (Optical Line Terminal), and issuing a new service order — effectively a new installation.</p>
+        <p style="margin-top:0.5rem;"><strong>FTTO Enterprise 2Gbps requires dedicated equipment per line:</strong></p>
+        <p>• A <strong>Huawei FTTO Router with 10G SFP+ interface</strong> — this is Enterprise-grade hardware not interchangeable with the Business-tier ONT currently installed</p>
+        <p>• A <strong>new service ID, new port provisioning on TIME's OLT</strong>, and a separate 36-month service agreement per connection</p>
+        <p>• Each line is <strong>independently routed on TIME's backbone</strong> for physical path diversity</p>
+        <p style="margin-top:0.5rem;">Because the ID leased line and the FTTO Business line both need to be decommissioned (the ID line is being cancelled, and the Business-tier ONT cannot support Enterprise speeds), <strong>TIME's standard migration pathway requires two fresh FTTO Enterprise installations</strong> to restore dual-line redundancy. This is not an optional upgrade — it is a platform migration driven by the hardware and network architecture differences between the legacy setup and the target Enterprise configuration.</p>
+    </div>
+
+    <!-- SCENARIO CARDS -->
+    <div class="scenario-grid">
+        <div class="s-card">
+            <div class="s-label">Current Setup</div>
+            <div class="s-title">50 Mbps + 1 Gbps</div>
+            <div class="s-price">RM 4,280<small>/mo</small></div>
+            <div class="s-detail">Leased line + FTTO Business</div>
+            <div class="s-badge red">Overpaying RM 3,000+/mo</div>
+        </div>
+        <div class="s-card">
+            <div class="s-label">Scenario A</div>
+            <div class="s-title">2 Gbps only</div>
+            <div class="s-price">RM 623<small>/mo</small></div>
+            <div class="s-detail">1 line · no redundancy</div>
+            <div class="s-badge green">▲ RM 3,657/mo saved (85%)</div>
+            <div style="font-size:0.7rem;color:var(--amber);margin-top:0.2rem;">OTC: RM 3,000</div>
+        </div>
+        <div class="s-card">
+            <div class="s-label">Scenario B</div>
+            <div class="s-title">1 Gbps + 2 Gbps</div>
+            <div class="s-price">RM 1,194<small>/mo</small></div>
+            <div class="s-detail">Keep legacy + new Enterprise</div>
+            <div class="s-badge green">▲ RM 3,087/mo saved (72%)</div>
+            <div style="font-size:0.7rem;color:var(--amber);margin-top:0.2rem;">OTC: RM 3,000</div>
+        </div>
+        <div class="s-card recommended">
+            <div class="s-label">Scenario C</div>
+            <div class="s-title">2 Gbps + 2 Gbps</div>
+            <div class="s-price">RM 1,247<small>/mo</small></div>
+            <div class="s-detail">Full Enterprise migration · 4Gbps</div>
+            <div class="s-badge green">▲ RM 3,034/mo saved (71%)</div>
+            <div style="font-size:0.7rem;color:var(--amber);margin-top:0.2rem;">OTC: RM 6,000 (2 × RM 3,000)</div>
+        </div>
+    </div>
+
+    <!-- VISUAL CHART -->
+    <div class="card">
+        <div class="card-title">📊 Monthly Cost Comparison</div>
+        <div class="chart-container">
+            <div class="chart-row">
+                <div class="chart-label">Current<br><span style="font-weight:400;font-size:0.7rem;color:var(--muted)">50M + 1G</span></div>
+                <div class="chart-bar-wrap"><div class="chart-bar navy" style="width:100%;">RM 4,280 /mo</div></div>
+            </div>
+            <div class="chart-row">
+                <div class="chart-label">Scenario A<br><span style="font-weight:400;font-size:0.7rem;color:var(--muted)">2G only</span></div>
+                <div class="chart-bar-wrap"><div class="chart-bar green-bar" style="width:14.6%;">RM 623</div></div>
+            </div>
+            <div class="chart-row">
+                <div class="chart-label">Scenario B<br><span style="font-weight:400;font-size:0.7rem;color:var(--muted)">1G + 2G</span></div>
+                <div class="chart-bar-wrap"><div class="chart-bar blue-bar" style="width:27.9%;">RM 1,194</div></div>
+            </div>
+            <div class="chart-row">
+                <div class="chart-label"><strong>Scenario C ★</strong><br><span style="font-weight:400;font-size:0.7rem;color:var(--muted)">2G + 2G</span></div>
+                <div class="chart-bar-wrap"><div class="chart-bar amber-bar" style="width:29.1%;">RM 1,247</div></div>
+            </div>
+        </div>
+        <div style="font-size:0.73rem;color:var(--muted);margin-top:0.3rem;">All figures include 6% SST and 1 Fixed WAN IP per line</div>
+    </div>
+
+    <!-- 36-MONTH TCO -->
+    <div class="card">
+        <div class="card-title">💰 36-Month Total Cost of Ownership</div>
+        <p style="font-size:0.8rem;color:var(--muted);margin-bottom:1rem;">Includes all monthly charges, one-time installation (OTC RM 3,000 per 2Gbps line), and 50Mbps early termination penalty.</p>
+        <div class="tco-grid">
+            <div class="tco-card">
+                <div class="tco-label">Current (36 months)</div>
+                <div class="tco-amount">RM 154,090</div>
+                <div class="tco-sub">RM 4,280 × 36 mo</div>
+            </div>
+            <div class="tco-card">
+                <div class="tco-label">Scenario A TCO</div>
+                <div class="tco-amount">RM 36,568</div>
+                <div class="tco-sub">RM 623×36 + RM 3k + RM 11k</div>
+                <div class="tco-saved">Save RM 117,522 (76%)</div>
+            </div>
+            <div class="tco-card">
+                <div class="tco-label">Scenario B TCO</div>
+                <div class="tco-amount">RM 57,098</div>
+                <div class="tco-sub">RM 1,194×36 + RM 3k + RM 11k</div>
+                <div class="tco-saved">Save RM 96,992 (63%)</div>
+            </div>
+            <div class="tco-card highlight">
+                <div class="tco-label">Scenario C TCO ★</div>
+                <div class="tco-amount">RM 62,006</div>
+                <div class="tco-sub">RM 1,247×36 + RM 6k + RM 11k</div>
+                <div class="tco-saved">Save RM 92,084 (60%)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTRACT TIMELINE (fully dynamic) -->
+    <div class="card">
+        <div class="card-title">📅 Contract Timeline</div>
+        <div class="timeline" id="timeline"></div>
+        <div id="timelineAlerts"></div>
+    </div>
+
+    <!-- DETAILED COMPARISON TABLE (improved) -->
+    <div class="card">
+        <div class="card-title">📋 Detailed Cost &amp; Savings Comparison</div>
+        <p style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem;">Scenario C column highlighted — recommended migration path per TIME FTTO Enterprise requirements.</p>
+        <div class="table-wrap">
+            <table id="comparisonTable">
+                <thead>
+                    <tr>
+                        <th style="width:22%;">Service Line</th>
+                        <th style="width:16%;">Current<br><span style="font-weight:400;opacity:0.7">50M + 1G</span></th>
+                        <th style="width:16%;">Scenario A<br><span style="font-weight:400;opacity:0.7">2G only</span></th>
+                        <th style="width:18%;">Scenario B<br><span style="font-weight:400;opacity:0.7">1G + 2G</span></th>
+                        <th style="width:20%;" class="col-rec">Scenario C ★<br><span style="font-weight:400;opacity:0.9">2G + 2G</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Section: Service Lines -->
+                    <tr class="row-section"><td colspan="5">Service Lines — Monthly Recurring Charges</td></tr>
+                    <tr>
+                        <td><strong>50 Mbps Leased Line</strong><br><span class="text-muted">SID: ME031063 · 36-mo · SLA 99.7%</span><br><span id="tblStatus50"></span></td>
+                        <td>RM 3,710.00</td>
+                        <td style="color:var(--muted);font-style:italic">— cancelled</td>
+                        <td style="color:var(--muted);font-style:italic">— cancelled</td>
+                        <td class="col-rec" style="color:var(--muted);font-style:italic">— cancelled</td>
+                    </tr>
+                    <tr>
+                        <td><strong>1 Gbps FTTO Business</strong><br><span class="text-muted">SID: TBBNA467662G · 24-mo</span><br><span id="tblStatus1g"></span></td>
+                        <td>RM 570.28</td>
+                        <td style="color:var(--muted);font-style:italic">— cancelled</td>
+                        <td>RM 570.28 <span class="chip green">keep</span></td>
+                        <td class="col-rec" style="color:var(--muted);font-style:italic">— cancelled</td>
+                    </tr>
+                    <tr>
+                        <td><strong>2 Gbps FTTO Enterprise</strong><br><span class="text-muted">New line 1 · 36-mo · Quote #5113936</span></td>
+                        <td style="color:var(--muted)">—</td>
+                        <td><strong>RM 623.28</strong></td>
+                        <td><strong>RM 623.28</strong></td>
+                        <td class="col-rec"><strong>RM 623.28</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>2 Gbps FTTO Enterprise</strong><br><span class="text-muted">New line 2 · replaces 1Gbps</span></td>
+                        <td style="color:var(--muted)">—</td>
+                        <td style="color:var(--muted)">—</td>
+                        <td style="color:var(--muted)">—</td>
+                        <td class="col-rec"><strong>RM 623.28</strong></td>
+                    </tr>
+
+                    <!-- Section: Totals -->
+                    <tr class="row-section"><td colspan="5">Financial Summary</td></tr>
+                    <tr class="row-total">
+                        <td><strong>Monthly Total</strong></td>
+                        <td><strong>RM 4,280.28</strong></td>
+                        <td><strong>RM 623.28</strong></td>
+                        <td><strong>RM 1,193.56</strong></td>
+                        <td class="col-rec"><strong>RM 1,246.56</strong></td>
+                    </tr>
+                    <tr class="row-savings">
+                        <td><strong>Monthly Savings</strong></td>
+                        <td>—</td>
+                        <td>
+                            <strong>RM 3,657.00</strong><br><span class="chip green">85.4%</span>
+                            <div class="mini-bar-wrap"><div class="mini-bar" style="width:85.4%"></div></div>
+                        </td>
+                        <td>
+                            <strong>RM 3,086.72</strong><br><span class="chip green">72.1%</span>
+                            <div class="mini-bar-wrap"><div class="mini-bar" style="width:72.1%"></div></div>
+                        </td>
+                        <td class="col-rec" style="background:#dcfce7 !important;">
+                            <strong>RM 3,033.72</strong><br><span class="chip green">70.9%</span>
+                            <div class="mini-bar-wrap"><div class="mini-bar" style="width:70.9%"></div></div>
+                        </td>
+                    </tr>
+                    <tr class="row-savings">
+                        <td><strong>Annual Savings</strong></td>
+                        <td>—</td>
+                        <td><strong>RM 43,884</strong></td>
+                        <td><strong>RM 37,041</strong></td>
+                        <td class="col-rec" style="background:#dcfce7 !important;"><strong>RM 36,405</strong></td>
+                    </tr>
+                    <tr class="row-savings">
+                        <td><strong>36-Month Savings</strong><br><span style="font-size:0.72rem;font-weight:400">incl. OTC &amp; penalty</span></td>
+                        <td>—</td>
+                        <td><strong>RM 117,522</strong></td>
+                        <td><strong>RM 96,992</strong></td>
+                        <td class="col-rec" style="background:#dcfce7 !important;"><strong>RM 92,084</strong></td>
+                    </tr>
+
+                    <!-- Section: One-Time Costs -->
+                    <tr class="row-section"><td colspan="5">One-Time Costs</td></tr>
+                    <tr class="row-penalty">
+                        <td><strong>50Mbps Early Termination</strong><br><span style="font-size:0.72rem">~3 mo remaining × RM 3,710</span></td>
+                        <td>—</td>
+                        <td>~RM 11,130</td>
+                        <td>~RM 11,130</td>
+                        <td class="col-rec">~RM 11,130</td>
+                    </tr>
+                    <tr class="row-otc">
+                        <td><strong>Installation OTC</strong><br><span style="font-size:0.72rem">RM 3,000 per 2Gbps line</span></td>
+                        <td>RM 0</td>
+                        <td>RM 3,000<br><span class="chip amber">1 line</span></td>
+                        <td>RM 3,000<br><span class="chip amber">1 line</span></td>
+                        <td class="col-rec"><strong>RM 6,000</strong><br><span class="chip amber">2 lines</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Payback Period</strong><br><span class="text-muted">total one-time ÷ monthly savings</span></td>
+                        <td>—</td>
+                        <td><strong>~3.9 months</strong><br><span class="text-muted">RM 14,130 ÷ RM 3,657</span></td>
+                        <td><strong>~4.6 months</strong><br><span class="text-muted">RM 14,130 ÷ RM 3,087</span></td>
+                        <td class="col-rec"><strong>~5.6 months</strong><br><span class="text-muted">RM 17,130 ÷ RM 3,034</span></td>
+                    </tr>
+
+                    <!-- Section: Capabilities -->
+                    <tr class="row-section"><td colspan="5">Capabilities &amp; Redundancy</td></tr>
+                    <tr>
+                        <td><strong>Total Bandwidth</strong></td>
+                        <td>~1 Gbps</td>
+                        <td>2 Gbps</td>
+                        <td>3 Gbps</td>
+                        <td class="col-rec"><strong>4 Gbps</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Line Redundancy</strong></td>
+                        <td><span class="chip green">2 lines</span></td>
+                        <td><span class="chip red">1 line ✕</span></td>
+                        <td><span class="chip green">2 lines</span><br><span class="text-muted">asymmetric</span></td>
+                        <td class="col-rec"><span class="chip green">2 lines ✓</span><br><span class="text-muted">symmetric failover</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Failover Capacity</strong></td>
+                        <td><span class="text-muted">50Mbps if main fails</span></td>
+                        <td><span class="chip red">none</span></td>
+                        <td>1Gbps or 2Gbps</td>
+                        <td class="col-rec"><strong>2Gbps (full speed)</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Service Tier</strong></td>
+                        <td>ID Leased + FTTO Biz</td>
+                        <td>FTTO Enterprise</td>
+                        <td>FTTO Biz + Enterprise</td>
+                        <td class="col-rec"><strong>Full Enterprise</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cost per Gbps</strong></td>
+                        <td><strong>RM 4,280/Gbps</strong><br><span class="text-muted">extremely high</span></td>
+                        <td><strong>RM 312/Gbps</strong></td>
+                        <td><strong>RM 398/Gbps</strong></td>
+                        <td class="col-rec"><strong>RM 312/Gbps</strong><br><span class="text-muted">best value</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PRICE BREAKDOWN -->
+    <div class="card">
+        <div class="card-title">🧾 Individual Line Pricing (incl. Fixed IP &amp; 6% SST)</div>
+        <div class="break-grid">
+            <div class="break-item">
+                <h4>📡 50 Mbps Leased Line</h4>
+                <div class="break-line"><span>Base Plan (ID 50Mbps)</span><span>RM 3,500.00</span></div>
+                <div class="break-line"><span>Fixed IP (included)</span><span>RM 0.00</span></div>
+                <div class="break-line"><span>Service Tax 6%</span><span>RM 210.00</span></div>
+                <div class="break-line total"><span>Monthly Total</span><span>RM 3,710.00</span></div>
+                <div style="margin-top:0.3rem;"><span class="chip amber">36-mo</span> <span id="detail50" style="font-size:0.72rem;color:var(--muted)"></span></div>
+            </div>
+            <div class="break-item">
+                <h4>⚡ 1 Gbps FTTO Business</h4>
+                <div class="break-line"><span>Base Plan (1Gbps)</span><span>RM 338.00</span></div>
+                <div class="break-line"><span>Fixed IP (WAN)</span><span>RM 200.00</span></div>
+                <div class="break-line"><span>Service Tax 6%</span><span>RM 32.28</span></div>
+                <div class="break-line total"><span>Monthly Total</span><span>RM 570.28</span></div>
+                <div style="margin-top:0.3rem;"><span class="chip green">Expired Oct 2025</span></div>
+            </div>
+            <div class="break-item" style="border-color:#86efac;background:#f0fdf4;">
+                <h4>🚀 2 Gbps FTTO Enterprise (per line)</h4>
+                <div class="break-line"><span>Base Plan (2Gbps)</span><span>RM 388.00</span></div>
+                <div class="break-line"><span>Fixed IP (WAN)</span><span>RM 200.00</span></div>
+                <div class="break-line"><span>Service Tax 6%</span><span>RM 35.28</span></div>
+                <div class="break-line total"><span>Monthly Total</span><span>RM 623.28</span></div>
+                <div class="break-line otc"><span>OTC per line</span><span>RM 3,000</span></div>
+                <div style="margin-top:0.3rem;"><span class="chip blue">36-mo new contract</span></div>
+                <div style="font-size:0.72rem;color:var(--muted);margin-top:0.15rem;">Huawei FTTO Router · 10G interface · per line</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCENARIO OPTIONS -->
+    <div class="card">
+        <div class="card-title">📋 What Changes in Each Scenario</div>
+        <div class="option-grid">
+            <div class="option-box">
+                <div class="opt-header">
+                    <span class="opt-letter" style="background:var(--navy);">A</span>
+                    <strong>2 Gbps Only</strong> <span class="chip green">max savings</span>
+                </div>
+                <ul>
+                    <li>✕ Cancel 50Mbps (penalty ~RM 11,130)</li>
+                    <li>✕ Cancel 1Gbps (free — expired)</li>
+                    <li>✓ Install 1 × new 2Gbps Enterprise line</li>
+                </ul>
+                <div class="opt-result">Monthly: RM 623.28 · Save RM 3,657/mo</div>
+                <div class="opt-cost">OTC: RM 3,000 (1 line)</div>
+            </div>
+            <div class="option-box">
+                <div class="opt-header">
+                    <span class="opt-letter" style="background:var(--blue);">B</span>
+                    <strong>1 Gbps + 2 Gbps</strong> <span class="chip amber">mixed tiers</span>
+                </div>
+                <ul>
+                    <li>✕ Cancel 50Mbps (penalty ~RM 11,130)</li>
+                    <li>⚠ Keep 1Gbps FTTO Business (legacy ONT hardware)</li>
+                    <li>✓ Install 1 × new 2Gbps Enterprise line</li>
+                    <li style="color:var(--amber);font-size:0.75rem;">⚠ Runs two different service tiers — asymmetric failover, separate management</li>
+                </ul>
+                <div class="opt-result">Monthly: RM 1,193.56 · Save RM 3,087/mo</div>
+                <div class="opt-cost">OTC: RM 3,000 (1 line) · leaves legacy hardware in place</div>
+            </div>
+            <div class="option-box rec-box">
+                <div class="opt-header">
+                    <span class="opt-letter" style="background:var(--green);">C</span>
+                    <strong>2 Gbps + 2 Gbps</strong> <span class="chip green">★ recommended</span>
+                </div>
+                <ul>
+                    <li>✕ Cancel 50Mbps (penalty ~RM 11,130)</li>
+                    <li>✕ Cancel 1Gbps (free — expired)</li>
+                    <li>✓ Install 2 × new 2Gbps Enterprise lines</li>
+                    <li>✓ Full migration to Enterprise tier</li>
+                </ul>
+                <div class="opt-result">Monthly: RM 1,246.56 · Save RM 3,034/mo</div>
+                <div class="opt-cost">OTC: RM 6,000 (2 × RM 3,000 per line)</div>
+            </div>
+            <div class="option-box" style="background:#fafafa;">
+                <div class="opt-header">
+                    <span class="opt-letter" style="background:var(--muted);">—</span>
+                    <strong>Do Nothing</strong> <span class="chip red">not recommended</span>
+                </div>
+                <ul>
+                    <li>✓ Wait until 50Mbps expires Oct 2026</li>
+                    <li>✓ No penalties, no changes</li>
+                </ul>
+                <div style="font-weight:700;color:var(--red);margin-top:0.25rem;font-size:0.83rem;">Costs RM 3,000+/mo more than any alternative</div>
+                <div style="font-size:0.75rem;color:var(--muted);margin-top:0.15rem;">Every month of inaction = RM 3,000+ wasted</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RISK ASSESSMENT -->
+    <div class="card">
+        <div class="card-title">⚠️ Risk &amp; Benefit Assessment</div>
+        <div class="risk-grid">
+            <div class="risk-item">
+                <h4>Scenario A — Single 2Gbps</h4>
+                <p class="pro">✓ Lowest cost (RM 623/mo)</p>
+                <p class="pro">✓ Highest monthly savings (85%)</p>
+                <p class="con" style="margin-top:0.2rem">✕ No redundancy — single point of failure</p>
+                <p class="con">✕ Hotel has zero internet if line goes down</p>
+                <p class="con">✕ Not suitable for hospitality operations</p>
+            </div>
+            <div class="risk-item">
+                <h4>Scenario B — Mixed Tiers</h4>
+                <p class="pro">✓ Dual-line redundancy</p>
+                <p class="pro">✓ Lower OTC (RM 3,000)</p>
+                <p class="con" style="margin-top:0.2rem">✕ Asymmetric failover — drops to 1Gbps if 2G line fails</p>
+                <p class="con">✕ Two different service tiers (Business + Enterprise)</p>
+                <p class="con">✕ Legacy Business ONT stays — different hardware/management</p>
+                <p class="con">✕ 1Gbps line is month-to-month — TIME may reprice or discontinue</p>
+                <p class="con">✕ Will eventually need to migrate 1G to Enterprise anyway</p>
+            </div>
+            <div class="risk-item rec-risk">
+                <h4>Scenario C — Full Enterprise ★</h4>
+                <p class="pro">✓ Symmetric dual-line (2G + 2G) — both lines equal</p>
+                <p class="pro">✓ Full-speed failover (2Gbps maintained if one line drops)</p>
+                <p class="pro">✓ Unified Enterprise tier — single platform, consistent SLA</p>
+                <p class="pro">✓ Both lines on new Huawei 10G hardware</p>
+                <p class="pro">✓ 4Gbps total · best cost-per-Gbps (RM 312/Gbps)</p>
+                <p class="pro">✓ Clean migration — no legacy equipment left behind</p>
+                <p class="pro">✓ TIME's recommended path for commercial premises</p>
+                <p class="con" style="margin-top:0.2rem">✕ Higher OTC (RM 6,000 vs RM 3,000) — paid back within 1 month of additional savings vs doing B then upgrading later</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <div>
+            <strong>Assumptions &amp; Notes</strong><br>
+            • 50Mbps early termination: ~RM 3,710 × remaining months = penalty (100% of remaining contract value)<br>
+            • 1Gbps contract expired Oct 2025 — no penalty to cancel<br>
+            • 2Gbps pricing from TIME quotation #5113936 dated 24 Jun 2026 (valid 30 days — <strong id="footerQuoteNote">may need renewal</strong>)<br>
+            • Each 2Gbps line requires separate OTC of RM 3,000 (Huawei FTTO Router + 10G interface)<br>
+            • All monthly figures include 6% SST<br>
+            • Contact: Joanna Chew, Senior Client Manager · joanna.chew@time.com.my · +6012 434 8166
+        </div>
+        <div style="text-align:right;">
+            <strong>Prepared for</strong><br>
+            L&amp;O STANDARD SDN BHD<br>
+            Finance Team<br>
+            <span id="footerDate"></span>
+        </div>
+    </div>
+</div>
+
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<script>
+// ══════════════════════════════════════════
+// DYNAMIC DATES — auto-updates everything
+// ══════════════════════════════════════════
+(function() {
+    var now = new Date();
+    var dateStr = now.toLocaleDateString('en-MY', { year:'numeric', month:'long', day:'numeric' });
+    document.getElementById('dateDisplay').textContent = dateStr;
+    document.getElementById('footerDate').textContent = dateStr;
+
+    // Key dates
+    var contractStart = new Date(2023, 9, 17); // Oct 17, 2023
+    var end50 = new Date(2023, 9, 17); end50.setMonth(end50.getMonth() + 36);   // Oct 17, 2026
+    var end1g = new Date(2023, 9, 17); end1g.setMonth(end1g.getMonth() + 24);   // Oct 17, 2025
+    var quoteDate = new Date(2026, 5, 24);  // Jun 24, 2026
+    var quoteExpiry = new Date(quoteDate); quoteExpiry.setDate(quoteExpiry.getDate() + 30);
+    var newContractEnd = new Date(now); newContractEnd.setMonth(newContractEnd.getMonth() + 36);
+
+    function daysBetween(a, b) { return Math.floor((b - a) / 86400000); }
+    function monthsBetween(a, b) {
+        var days = daysBetween(a, b);
+        if (days <= 0) return { expired: true, months: 0, days: 0, totalDays: 0 };
+        return { expired: false, months: Math.floor(days / 30.44), days: Math.floor(days % 30.44), totalDays: days };
+    }
+
+    var r50 = monthsBetween(now, end50);
+    var r1g = monthsBetween(now, end1g);
+    var quoteRemaining = daysBetween(now, quoteExpiry);
+
+    // ── Table statuses ──
+    document.getElementById('tblStatus50').innerHTML = r50.expired
+        ? '<span style="color:var(--green);font-weight:600;font-size:0.75rem;">✓ Contract expired</span>'
+        : '<span style="color:var(--red);font-weight:600;font-size:0.75rem;">⏳ ' + r50.months + ' mo ' + r50.days + 'd remaining</span>';
+    document.getElementById('tblStatus1g').innerHTML = '<span style="color:var(--green);font-weight:600;font-size:0.75rem;">✓ Expired Oct 2025 · month-to-month</span>';
+    document.getElementById('detail50').textContent = r50.expired ? '(Expired)' : '(Ends ' + end50.toLocaleDateString('en-MY',{year:'numeric',month:'short',day:'numeric'}) + ' · ' + r50.months + ' mo ' + r50.days + 'd left)';
+
+    // ── Penalty calculation (dynamic) ──
+    var penaltyMonths = r50.expired ? 0 : Math.ceil(r50.totalDays / 30.44);
+    var penaltyAmount = penaltyMonths * 3710;
+
+    // ── Quote status ──
+    if (quoteRemaining < 0) {
+        document.getElementById('footerQuoteNote').textContent = 'expired — request updated quote';
+    } else if (quoteRemaining <= 7) {
+        document.getElementById('footerQuoteNote').textContent = 'expires in ' + quoteRemaining + ' days';
+    } else {
+        document.getElementById('footerQuoteNote').textContent = 'valid until ' + quoteExpiry.toLocaleDateString('en-MY',{month:'short',day:'numeric',year:'numeric'});
+    }
+
+    // ── Dynamic Timeline ──
+    var fmtShort = function(d) { return d.toLocaleDateString('en-MY',{year:'numeric',month:'short'}); };
+    var timelineItems = [
+        { date: fmtShort(contractStart), text: 'Both lines installed', color: 'green' },
+        { date: fmtShort(end1g), text: '1Gbps contract expired ✓', color: 'green' },
+        { date: fmtShort(now), text: 'Today — we are here', color: 'blue', pulse: true },
+    ];
+    if (!r50.expired) {
+        timelineItems.push({ date: fmtShort(end50), text: '50Mbps expires (' + r50.months + 'mo ' + r50.days + 'd)', color: 'red' });
+    } else {
+        timelineItems.push({ date: fmtShort(end50), text: '50Mbps expired ✓', color: 'green' });
+    }
+    timelineItems.push({ date: fmtShort(newContractEnd), text: 'New 2Gbps contracts end', color: 'amber' });
+
+    var tlHtml = '';
+    for (var i = 0; i < timelineItems.length; i++) {
+        var t = timelineItems[i];
+        tlHtml += '<div class="tl-item"><div class="tl-dot ' + t.color + (t.pulse ? ' pulse' : '') + '"></div><div class="tl-date">' + t.date + '</div><div class="tl-text">' + t.text + '</div></div>';
+    }
+    document.getElementById('timeline').innerHTML = tlHtml;
+
+    // ── Timeline alerts ──
+    var alertsHtml = '';
+    if (!r50.expired) {
+        alertsHtml += '<div class="callout red" style="margin-top:1rem;"><strong>⚠️ 50Mbps Contract:</strong> Expires <strong>' + end50.toLocaleDateString('en-MY',{year:'numeric',month:'long',day:'numeric'}) + '</strong> — <strong>' + r50.months + ' months ' + r50.days + ' days</strong> remaining. Early cancellation penalty: ~RM ' + penaltyAmount.toLocaleString() + ' (' + penaltyMonths + ' mo × RM 3,710). This pays for itself within ~5.6 months of savings under Scenario C.</div>';
+    }
+    if (quoteRemaining < 0) {
+        alertsHtml += '<div class="callout amber" style="margin-top:0.5rem;"><strong>📋 Quote Expired:</strong> The 2Gbps quotation #5113936 (dated 24 Jun 2026) expired <strong>' + Math.abs(quoteRemaining) + ' days ago</strong>. Contact Joanna Chew to request an updated quotation before proceeding. Pricing and OTC may be subject to revision.</div>';
+    } else if (quoteRemaining <= 7) {
+        alertsHtml += '<div class="callout amber" style="margin-top:0.5rem;"><strong>📋 Quote Expiring:</strong> The 2Gbps quotation #5113936 expires in <strong>' + quoteRemaining + ' days</strong> (around ' + quoteExpiry.toLocaleDateString('en-MY',{year:'numeric',month:'short',day:'numeric'}) + '). Request an extension from Joanna Chew or be prepared to request a fresh quotation if it lapses.</div>';
+    } else {
+        alertsHtml += '<div class="callout blue" style="margin-top:0.5rem;"><strong>📋 Quote Valid:</strong> The 2Gbps quotation #5113936 is valid for <strong>' + quoteRemaining + ' more days</strong>.</div>';
+    }
+    document.getElementById('timelineAlerts').innerHTML = alertsHtml;
+})();
+
+// ══════════════════════════════════════════
+// EXPORT: PDF
+// ══════════════════════════════════════════
+function exportPDF() {
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF('landscape', 'mm', 'a4');
+    var ds = document.getElementById('dateDisplay').textContent;
+
+    doc.setFontSize(15); doc.setTextColor('#0b1a2e');
+    doc.text('Time Internet \u2013 Package Optimization Report', 14, 15);
+    doc.setFontSize(10); doc.setTextColor('#555');
+    doc.text('L&O STANDARD SDN BHD \u00b7 NEO HOTEL PENANG  |  ' + ds, 14, 22);
+    doc.setFontSize(9); doc.setTextColor('#065f46');
+    doc.text('\u2605 RECOMMENDATION: Scenario C (2Gbps + 2Gbps) \u2014 full Enterprise migration, 4Gbps, symmetric failover', 14, 29);
+
+    var rows = [
+        ['Service', 'Current', 'A: 2G Only', 'B: 1G+2G', 'C: 2G+2G \u2605'],
+        ['50Mbps Leased Line', 'RM 3,710', 'cancelled', 'cancelled', 'cancelled'],
+        ['1Gbps FTTO Business', 'RM 570.28', 'cancelled', 'RM 570.28', 'cancelled'],
+        ['2Gbps Enterprise #1', '\u2014', 'RM 623.28', 'RM 623.28', 'RM 623.28'],
+        ['2Gbps Enterprise #2', '\u2014', '\u2014', '\u2014', 'RM 623.28'],
+        ['Monthly Total', 'RM 4,280', 'RM 623', 'RM 1,194', 'RM 1,247'],
+        ['Monthly Savings', '\u2014', 'RM 3,657 (85%)', 'RM 3,087 (72%)', 'RM 3,034 (71%)'],
+        ['Annual Savings', '\u2014', 'RM 43,884', 'RM 37,041', 'RM 36,405'],
+        ['36-Mo TCO', 'RM 154,090', 'RM 36,568', 'RM 57,098', 'RM 62,006'],
+        ['36-Mo Savings', '\u2014', 'RM 117,522', 'RM 96,992', 'RM 92,084'],
+        ['Penalty', '\u2014', '~RM 11,130', '~RM 11,130', '~RM 11,130'],
+        ['OTC', 'RM 0', 'RM 3,000', 'RM 3,000', 'RM 6,000'],
+        ['Payback', '\u2014', '~3.9 mo', '~4.6 mo', '~5.6 mo'],
+        ['Bandwidth', '~1G', '2G', '3G', '4G'],
+        ['Redundancy', '2 lines', '1 line', '2 (asym)', '2 (sym) \u2713']
+    ];
+
+    doc.autoTable({
+        head: [rows[0]], body: rows.slice(1), startY: 34,
+        theme: 'grid',
+        styles: { fontSize: 7, cellPadding: 1.5, valign: 'middle' },
+        headStyles: { fillColor: '#0b1a2e', textColor: '#fff', fontSize: 7, fontStyle: 'bold' },
+        columnStyles: { 0: { cellWidth: 36, fontStyle: 'bold' }, 4: { fillColor: [240,253,244] } },
+        didParseCell: function(d) {
+            var t = d.cell.text.join('');
+            if (t.includes('cancelled')) { d.cell.styles.textColor = [148,163,184]; d.cell.styles.fontStyle = 'italic'; }
+            if (d.row.index >= 4 && d.row.index <= 8) d.cell.styles.fillColor = d.column.index === 4 ? [220,252,231] : [236,253,245];
+            if (d.row.index === 9) d.cell.styles.fillColor = [254,242,242];
+            if (d.row.index === 10) d.cell.styles.fillColor = [255,251,235];
+        }
+    });
+
+    var fy = doc.lastAutoTable.finalY + 5;
+    doc.setFontSize(7); doc.setTextColor('#888');
+    doc.text('OTC: RM 3,000 per 2Gbps line | Penalty ~RM 11,130 | 6% SST included | Quote #5113936', 14, fy);
+    doc.text('Prepared for L&O STANDARD SDN BHD Finance Team | ' + ds, 14, fy + 4);
+    doc.save('Time_Internet_Optimization_Report.pdf');
+}
+
+// ══════════════════════════════════════════
+// EXPORT: EXCEL (with Chart.js chart images)
+// ══════════════════════════════════════════
+function exportExcel() {
+    if (typeof ExcelJS !== 'undefined' && typeof saveAs !== 'undefined' && typeof Chart !== 'undefined') {
+        exportExcelWithCharts();
+    } else if (typeof XLSX !== 'undefined') {
+        exportExcelFallback();
+    } else {
+        alert('Excel libraries not loaded. Please try again.');
+    }
+}
+
+function renderChartToBase64(config, w, h) {
+    return new Promise(function(resolve) {
+        var c = document.createElement('canvas');
+        c.width = w || 620; c.height = h || 340;
+        c.style.cssText = 'position:absolute;left:-9999px';
+        document.body.appendChild(c);
+        var chart = new Chart(c.getContext('2d'), config);
+        setTimeout(function() {
+            resolve(c.toDataURL('image/png').split(',')[1]);
+            chart.destroy(); document.body.removeChild(c);
+        }, 350);
+    });
+}
+
+async function exportExcelWithCharts() {
+    var btn = document.getElementById('excelBtn');
+    btn.textContent = '\u23f3 Generating...'; btn.disabled = true;
+    try {
+        var c1 = await renderChartToBase64({
+            type:'bar', data:{ labels:['Current','A: 2G Only','B: 1G+2G','C: 2G+2G \u2605'],
+                datasets:[{label:'Monthly Cost (RM)',data:[4280,623,1194,1247],backgroundColor:['#0b1a2e','#059669','#2563eb','#d97706'],borderRadius:6,barThickness:50}]},
+            options:{ responsive:false,animation:false, plugins:{title:{display:true,text:'Monthly Cost Comparison (RM)',font:{size:16,weight:'bold'}},legend:{display:false}}, scales:{y:{beginAtZero:true,max:5000,ticks:{callback:function(v){return 'RM '+v.toLocaleString();}}}}}
+        }, 620, 340);
+        var c2 = await renderChartToBase64({
+            type:'bar', data:{ labels:['A: 2G Only','B: 1G+2G','C: 2G+2G \u2605'],
+                datasets:[{label:'Monthly Savings (RM)',data:[3657,3087,3034],backgroundColor:['#059669','#2563eb','#d97706'],borderRadius:6,barThickness:50}]},
+            options:{ responsive:false,animation:false, plugins:{title:{display:true,text:'Monthly Savings vs Current (RM)',font:{size:16,weight:'bold'}},legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{callback:function(v){return 'RM '+v.toLocaleString();}}}}}
+        }, 620, 340);
+        var c3 = await renderChartToBase64({
+            type:'bar', data:{ labels:['Current','A: 2G Only','B: 1G+2G','C: 2G+2G \u2605'],
+                datasets:[{label:'36-Mo TCO (RM)',data:[154090,36568,57098,62006],backgroundColor:['#0b1a2e','#059669','#2563eb','#d97706'],borderRadius:6,barThickness:50}]},
+            options:{ responsive:false,animation:false, plugins:{title:{display:true,text:'36-Month Total Cost of Ownership (RM)',font:{size:16,weight:'bold'}},legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{callback:function(v){return 'RM '+(v/1000).toFixed(0)+'k';}}}}}
+        }, 620, 340);
+
+        var wb = new ExcelJS.Workbook();
+        wb.creator = 'L&O STANDARD SDN BHD'; wb.created = new Date();
+        var ds = document.getElementById('dateDisplay').textContent;
+        function bdr(cell) { cell.border = { top:{style:'thin',color:{argb:'FFD0D8E0'}},left:{style:'thin',color:{argb:'FFD0D8E0'}},bottom:{style:'thin',color:{argb:'FFD0D8E0'}},right:{style:'thin',color:{argb:'FFD0D8E0'}}}; }
+
+        // Sheet 1
+        var ws = wb.addWorksheet('Comparison',{properties:{tabColor:{argb:'FF0B1A2E'}},pageSetup:{orientation:'landscape',fitToPage:true}});
+        ws.mergeCells('A1:E1');
+        var tc=ws.getCell('A1'); tc.value='Time Internet \u2013 Package Optimization Report'; tc.font={name:'Segoe UI',size:16,bold:true,color:{argb:'FFFFFFFF'}}; tc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0B1A2E'}}; tc.alignment={horizontal:'center',vertical:'middle'}; ws.getRow(1).height=36;
+        ws.mergeCells('A2:E2');
+        var sc=ws.getCell('A2'); sc.value='L&O STANDARD SDN BHD \u00b7 NEO HOTEL PENANG  |  '+ds+'  |  Quote #5113936'; sc.font={name:'Segoe UI',size:10,color:{argb:'FF6B7E92'}}; sc.alignment={horizontal:'center',vertical:'middle'}; ws.getRow(2).height=24;
+        ws.mergeCells('A3:E3');
+        var rc=ws.getCell('A3'); rc.value='\u2605 RECOMMENDATION: Scenario C (2Gbps + 2Gbps) \u2014 Full Enterprise migration, symmetric failover, RM 92,084 saved over 36 months'; rc.font={name:'Segoe UI',size:11,bold:true,color:{argb:'FF065F46'}}; rc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFECFDF5'}}; rc.alignment={horizontal:'center',vertical:'middle'}; ws.getRow(3).height=28;
+
+        var td=[
+            ['Service','Current (50M+1G)','A: 2G Only','B: 1G+2G','C: 2G+2G \u2605'],
+            ['50Mbps Leased Line','RM 3,710','cancelled','cancelled','cancelled'],
+            ['1Gbps FTTO Business','RM 570.28','cancelled','RM 570.28 (keep)','cancelled'],
+            ['2Gbps Enterprise #1','\u2014','RM 623.28','RM 623.28','RM 623.28'],
+            ['2Gbps Enterprise #2','\u2014','\u2014','\u2014','RM 623.28'],
+            ['Monthly Total','RM 4,280.28','RM 623.28','RM 1,193.56','RM 1,246.56'],
+            ['Monthly Savings','\u2014','RM 3,657 (85%)','RM 3,087 (72%)','RM 3,034 (71%)'],
+            ['Annual Savings','\u2014','RM 43,884','RM 37,041','RM 36,405'],
+            ['36-Mo TCO','RM 154,090','RM 36,568','RM 57,098','RM 62,006'],
+            ['36-Mo Savings','\u2014','RM 117,522','RM 96,992','RM 92,084'],
+            ['50Mbps Penalty','\u2014','~RM 11,130','~RM 11,130','~RM 11,130'],
+            ['OTC (RM 3k/line)','RM 0','RM 3,000 (1)','RM 3,000 (1)','RM 6,000 (2)'],
+            ['Payback','\u2014','~3.9 months','~4.6 months','~5.6 months'],
+            ['Bandwidth','~1 Gbps','2 Gbps','3 Gbps','4 Gbps'],
+            ['Redundancy','2 lines','1 line \u2717','2 lines (asym)','2 lines (sym) \u2713']
+        ];
+        var sr=5;
+        var hColors=['FF0B1A2E','FFDC2626','FF059669','FF2563EB','FF059669'];
+        for(var c=0;c<5;c++){var hc=ws.getCell(sr,c+1);hc.value=td[0][c];hc.font={name:'Segoe UI',size:9,bold:true,color:{argb:'FFFFFFFF'}};hc.fill={type:'pattern',pattern:'solid',fgColor:{argb:c===4?'FF064E3B':'FF0B1A2E'}};hc.alignment={horizontal:c===0?'left':'center',vertical:'middle',wrapText:true};bdr(hc);}
+        ws.getRow(sr).height=30;
+        var bgM={5:'FFF0F4F8',6:'FFECFDF5',7:'FFECFDF5',8:'FFECFDF5',9:'FFECFDF5',10:'FFFEF2F2',11:'FFFFFBEB'};
+        var fgM={5:'FF0B1A2E',6:'FF065F46',7:'FF065F46',8:'FF065F46',9:'FF065F46',10:'FF991B1B',11:'FF92400E'};
+        for(var r=1;r<td.length;r++){for(var c2=0;c2<5;c2++){var dc=ws.getCell(sr+r,c2+1);dc.value=td[r][c2];var bg=bgM[r]||(r%2===0?'FFF8FAFC':'FFFFFFFF');var fg=fgM[r]||'FF1A2634';if(c2===4&&!bgM[r])bg='FFF0FDF4';if(c2===4&&bgM[r])bg=r>=6&&r<=9?'FFDCFCE7':bgM[r];dc.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};dc.font={name:'Segoe UI',size:9,bold:c2===0||r===5||r>=6&&r<=9,color:{argb:fg},italic:String(dc.value).includes('cancelled')};dc.alignment={horizontal:c2===0?'left':'center',vertical:'middle',wrapText:true};bdr(dc);}ws.getRow(sr+r).height=24;}
+        ws.getColumn(1).width=24;ws.getColumn(2).width=20;ws.getColumn(3).width=18;ws.getColumn(4).width=18;ws.getColumn(5).width=22;
+
+        // Sheet 2: Charts
+        var ws2=wb.addWorksheet('Charts',{properties:{tabColor:{argb:'FF059669'}},pageSetup:{orientation:'landscape'}});
+        ws2.mergeCells('A1:H1');var ct2=ws2.getCell('A1');ct2.value='Visual Cost Comparison \u2013 Time Internet Plans';ct2.font={name:'Segoe UI',size:16,bold:true,color:{argb:'FF0B1A2E'}};ct2.alignment={horizontal:'center',vertical:'middle'};ws2.getRow(1).height=34;
+        var i1=wb.addImage({base64:c1,extension:'png'});ws2.addImage(i1,{tl:{col:0,row:2},br:{col:5,row:18}});
+        var i2=wb.addImage({base64:c2,extension:'png'});ws2.addImage(i2,{tl:{col:5.5,row:2},br:{col:10.5,row:18}});
+        var i3=wb.addImage({base64:c3,extension:'png'});ws2.addImage(i3,{tl:{col:0,row:19},br:{col:5,row:35}});
+
+        var buf=await wb.xlsx.writeBuffer();
+        saveAs(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'Time_Internet_Optimization.xlsx');
+    } catch(e) { console.error(e); exportExcelFallback(); }
+    finally { btn.innerHTML='\u{1F4CA} Export Excel (with charts)'; btn.disabled=false; }
+}
+
+function exportExcelFallback() {
+    var d=[['','Current','A: 2G','B: 1G+2G','C: 2G+2G'],['Monthly','RM 4,280','RM 623','RM 1,194','RM 1,247'],['Savings/mo','','RM 3,657','RM 3,087','RM 3,034'],['36-Mo TCO','RM 154,090','RM 36,568','RM 57,098','RM 62,006'],['OTC','RM 0','RM 3,000','RM 3,000','RM 6,000']];
+    var wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(d);
+    ws['!cols']=[{wch:16},{wch:16},{wch:16},{wch:16},{wch:16}];
+    XLSX.utils.book_append_sheet(wb,ws,'Comparison');
+    XLSX.writeFile(wb,'Time_Internet_Comparison.xlsx');
+}
+</script>
+</body>
+</html>
